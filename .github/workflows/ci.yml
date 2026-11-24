@@ -1,0 +1,74 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: ["3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: ${{ matrix.python }}
+      - run: pip install -e ".[dev]"
+      - run: ruff check . && ruff format --check .
+      - run: pytest -q
+      - run: itwin check-network
+
+  demo:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.13"
+      - run: pip install .
+      - name: Scripted demo and validation runs (synthetic data)
+        run: |
+          itwin demo | tee demo.txt
+          python examples/validation.py | tee validation.txt
+          {
+            echo '### Digital twin demo (synthetic data)'
+            echo '```'
+            cat demo.txt
+            echo '```'
+            echo '### Validation runs'
+            echo '```'
+            cat validation.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  container:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Build image
+        run: docker build -t itwin:ci .
+      - name: Start read-only, wait for health, call the API
+        run: |
+          V="v_$(openssl rand -hex 16)"; P="p_$(openssl rand -hex 16)"
+          docker run -d --name tw -p 8080:8080 -e ITWIN_API_KEYS="viewer:$V,planner:$P" -e ITWIN_SPEED=200 --read-only --tmpfs /tmp itwin:ci
+          for i in $(seq 1 30); do curl -fsS http://127.0.0.1:8080/readyz && break; sleep 1; done
+          curl -fsS -H "x-api-key: $V" http://127.0.0.1:8080/v1/state | grep -q '"metering_enabled":true'
+          test "$(curl -s -o /dev/null -w '%{http_code}' -H "x-api-key: $V" -X POST -H 'content-type: application/json' -d '{"name":"x"}' http://127.0.0.1:8080/v1/what-if)" = "403"
+          curl -fsS -H "x-api-key: $P" -X POST -H 'content-type: application/json' -d '{"name":"demand","horizon_min":30,"demand_factor":1.1}' http://127.0.0.1:8080/v1/what-if | grep -q '"delta"'
+          test "$(docker inspect -f '{{.Config.User}}' itwin:ci)" = "10001"
+      - if: always()
+        run: docker logs tw || true
