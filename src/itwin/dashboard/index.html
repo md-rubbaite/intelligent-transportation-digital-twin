@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Expressway Digital Twin · Operator Console</title>
+<link rel="icon" href="data:,">
+<style>
+:root{--bg:#0A1022;--panel:#111A33;--line:#1E2A4A;--text:#E2E8F0;--muted:#94A3B8;--gold:#F5C451;--green:#34D399;--amber:#FACC15;--orange:#FB923C;--red:#EF4444}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 Inter,"Segoe UI",Helvetica,Arial,sans-serif}
+header{display:flex;align-items:center;gap:16px;padding:14px 24px;border-bottom:1px solid var(--line)}
+.brand small{display:block;color:var(--gold);font-size:10px;font-weight:700;letter-spacing:1.2px}.brand b{font-size:18px}.brand b span{color:var(--gold)}
+header .sp{flex:1}input,select,button{font:inherit;color:var(--text);background:#0D1530;border:1px solid var(--line);border-radius:8px;padding:6px 10px}
+button{cursor:pointer}button.gold{background:var(--gold);color:#1A1405;border-color:var(--gold);font-weight:700}button:disabled{opacity:.5;cursor:default}
+main{padding:18px 24px;display:grid;gap:16px}
+.cards{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px 16px}
+.card .k{color:var(--muted);font-size:11px;letter-spacing:.8px;text-transform:uppercase}.card .v{font-size:24px;font-weight:700}.card .s{color:var(--muted);font-size:12px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px}.panel h2{margin:0 0 10px;font-size:13px;letter-spacing:.8px;text-transform:uppercase;color:var(--gold)}
+.grid2{display:grid;grid-template-columns:1.3fr 1fr;gap:16px}.cols{display:grid;grid-template-columns:1.3fr 1fr;gap:16px;align-items:start}.col{display:grid;gap:16px}.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+table{width:100%;border-collapse:collapse;font-size:13px}th{color:var(--muted);font-weight:600;text-align:left;font-size:11px;letter-spacing:.6px;text-transform:uppercase;padding:6px 4px;border-bottom:1px solid var(--line)}
+td{padding:6px 4px;border-bottom:1px solid #16213F}td.n{text-align:right;font-variant-numeric:tabular-nums}
+.pill{display:inline-block;padding:1px 8px;border-radius:999px;font-size:11px;font-weight:700}.ok{background:#064E3B;color:var(--green)}.bad{background:#4C0519;color:#FDA4AF}.warn{background:#451A03;color:#FCD34D}.info{background:#1E293B;color:#CBD5E1}
+.alerts{max-height:260px;overflow:auto}.alert{padding:8px 0;border-bottom:1px solid #16213F}.alert .t{color:var(--muted);font-size:12px;margin-right:6px}
+form.row{display:flex;flex-wrap:wrap;gap:8px;align-items:end}form.row label{display:flex;flex-direction:column;font-size:11px;color:var(--muted);gap:3px}
+.legend span{display:inline-flex;align-items:center;gap:6px;margin-right:14px;color:var(--muted);font-size:12px}.legend i{width:14px;height:8px;border-radius:2px;display:inline-block}
+.muted{color:var(--muted)}.res{margin-top:10px}#err{color:#FDA4AF;font-size:12px}
+@media(max-width:1100px){.cards{grid-template-columns:repeat(2,1fr)}.grid2,.grid3,.cols{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand"><small>INTELLIGENT TRANSPORTATION</small><b>Expressway <span>Digital Twin</span> Console</b></div>
+  <div class="sp"></div>
+  <span id="err"></span>
+  <input id="key" type="password" placeholder="API key" autocomplete="off" size="34">
+  <button class="gold" id="connect">Connect</button>
+  <span id="who" class="muted"></span>
+</header>
+<main>
+  <div class="cards">
+    <div class="card"><div class="k">Model time</div><div class="v" id="c-clock">–</div><div class="s" id="c-net">synthetic corridor</div></div>
+    <div class="card"><div class="k">Corridor travel time</div><div class="v" id="c-tt">–</div><div class="s" id="c-ff"></div></div>
+    <div class="card"><div class="k">Vehicles waiting at entries</div><div class="v" id="c-q">–</div><div class="s">plazas and ramp meters</div></div>
+    <div class="card"><div class="k">Incident alarms</div><div class="v" id="c-al">–</div><div class="s" id="c-cl"></div></div>
+    <div class="card"><div class="k">Ramp metering</div><div class="v" id="c-m">–</div><div class="s"><button id="m-on">On</button> <button id="m-off">Off</button></div></div>
+  </div>
+
+  <div class="panel">
+    <h2>Corridor</h2>
+    <svg id="corr" viewBox="0 0 1200 140" width="100%" role="img" aria-label="Corridor schematic with speed by cell"></svg>
+    <div class="legend"><span><i style="background:var(--green)"></i>&gt; 60 km/h</span><span><i style="background:var(--amber)"></i>30–60</span><span><i style="background:var(--orange)"></i>10–30</span><span><i style="background:var(--red)"></i>&lt; 10</span><span>● detector (gold = ok, red = fault)</span><span>✕ confirmed lane closure</span><span>q = queue (veh) · m = meter rate (veh/h)</span></div>
+  </div>
+
+  <div class="grid2">
+    <div class="panel"><h2>Alerts</h2><div class="alerts" id="alerts"><span class="muted">Connect with a key to see live data.</span></div></div>
+    <div class="panel"><h2>Travel time, last hours</h2><svg id="spark" viewBox="0 0 520 150" width="100%" role="img" aria-label="Travel time history"></svg></div>
+  </div>
+
+  <div class="cols">
+    <div class="col">
+    <div class="panel"><h2>Entries and toll plazas</h2><table><thead><tr><th>Entry</th><th>km</th><th class="n">Arrivals</th><th class="n">Released</th><th class="n">Meter</th><th class="n">Queue</th><th class="n">Est. wait</th></tr></thead><tbody id="entries"></tbody></table></div>
+    <div class="panel"><h2>Confirm lane closure (operator)</h2>
+      <form class="row" id="cc">
+        <label>Cell<input name="cell" placeholder="C14" size="6" required pattern="C\d{2,3}"></label>
+        <label>Lanes closed (0 = reopen)<input name="lanes" type="number" min="0" max="8" value="1" style="width:90px" required></label>
+        <button class="gold" type="submit">Confirm</button>
+      </form>
+      <p class="muted" style="font-size:12px">Confirm only after checking CCTV or a patrol report. The twin then models the closure, which improves tracking and what-if results.</p>
+      <h2 style="margin-top:14px">Toll lanes needed (Erlang C)</h2>
+      <form class="row" id="sz">
+        <label>Arrivals veh/h<input name="a" type="number" value="1850" min="1" style="width:90px"></label>
+        <label>Service veh/h/lane<input name="s" type="number" value="350" min="1" style="width:90px"></label>
+        <label>Target wait s<input name="w" type="number" value="60" min="1" style="width:80px"></label>
+        <button type="submit">Size</button>
+      </form>
+      <div class="res" id="szres"></div>
+    </div>
+    </div>
+    <div class="col">
+    <div class="panel"><h2>Detectors</h2><table><thead><tr><th>Detector</th><th>Cell</th><th>Status</th><th class="n">Residual</th></tr></thead><tbody id="sensors"></tbody></table>
+      <p class="muted" style="font-size:12px;margin:8px 0 0">Residual = measured − forecast density (veh/km/lane). Persistent positive upstream and negative downstream residuals raise an incident alarm.</p></div>
+    </div>
+  </div>
+
+    <div class="panel"><h2>What-if (planner)</h2>
+      <form class="row" id="wi">
+        <label>Name<input name="name" value="Lane reopened in 15 min" size="22" maxlength="80"></label>
+        <label>Horizon (min)<input name="horizon_min" type="number" value="60" min="5" max="240" style="width:80px"></label>
+        <label title="Reopen the confirmed closures after this many minutes; leave empty to keep them">Reopen after (min)<input name="reopen_after_min" type="number" min="0" max="240" placeholder="keep" style="width:90px" value="15"></label>
+        <label>Demand factor<input name="demand_factor" type="number" step="0.05" value="1.0" min="0.3" max="2" style="width:80px"></label>
+        <label>Metering<select name="metering"><option value="">as now</option><option value="true">on</option><option value="false">off</option></select></label>
+        <label>Close cell<input name="c_cell" placeholder="e.g. C14" size="6" pattern="C\d{2,3}"></label>
+        <label>Lanes<input name="c_lanes" type="number" min="1" max="8" style="width:60px"></label>
+        <label>For (min)<input name="c_dur" type="number" min="1" max="240" value="30" style="width:70px"></label>
+        <button class="gold" type="submit">Run</button>
+      </form>
+      <div class="res" id="wires"></div>
+    </div>
+  <p class="muted" style="font-size:12px">All data on this console is synthetic. The corridor, demand and plaza service rates are illustrative assumptions, not a model of any real road.</p>
+</main>
+<script>
+"use strict";
+let KEY = "", NET = null, TIMER = null;
+const $ = (id) => document.getElementById(id);
+const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const num = (v, d = 0) => (v === null || v === undefined) ? "–" : Number(v).toFixed(d);
+async function api(path, opts = {}) {
+  const r = await fetch(path, {...opts, headers: {"content-type": "application/json", "x-api-key": KEY, ...(opts.headers || {})}});
+  const body = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(body.detail ? (typeof body.detail === "string" ? body.detail : JSON.stringify(body.detail)) : r.status);
+  return body;
+}
+function color(v) { return v > 60 ? "var(--green)" : v >= 30 ? "var(--amber)" : v >= 10 ? "var(--orange)" : "var(--red)"; }
+function drawCorridor(s) {
+  const W = 1200, x0 = 40, x1 = W - 40, n = s.cells.length, cw = (x1 - x0) / n, y = 44;
+  const L = NET ? NET.length_km : n * 0.5, X = (km) => x0 + (km / L) * (x1 - x0);
+  let g = "";
+  s.cells.forEach((c, i) => {
+    g += `<rect x="${x0 + i * cw + 1}" y="${y}" width="${cw - 2}" height="26" rx="3" fill="${color(c.speed_kmh)}"><title>${esc(c.id)} · ${num(c.speed_kmh)} km/h · LOS ${esc(c.los)} · ${num(c.density_vpkpl, 1)} veh/km/lane</title></rect>`;
+    if (c.lanes_open < c.lanes) g += `<text x="${x0 + i * cw + cw / 2}" y="${y + 19}" text-anchor="middle" font-size="16" font-weight="700" fill="#fff">✕</text>`;
+    if (i % 2 === 0) g += `<text x="${x0 + i * cw}" y="${y + 44}" font-size="10" fill="#64748B">${num(c.km, 0)}</text>`;
+  });
+  g += `<text x="${x1}" y="${y + 44}" font-size="10" fill="#64748B" text-anchor="end">${num(L, 0)} km</text>`;
+  (NET ? NET.exits : []).forEach((x) => { const px = X(x.km); g += `<path d="M${px} ${y} L${px + 14} ${y - 26}" stroke="#94A3B8" stroke-width="2" fill="none"/><text x="${px + 16}" y="${y - 28}" font-size="11" fill="#94A3B8">${esc(x.id)}</text>`; });
+  s.entries.forEach((e) => {
+    const px = X(e.km) + 2, q = Math.min(e.queue_veh / Math.max(e.queue_limit_veh, 1), 1.5);
+    g += `<path d="M${px - 26} ${y + 66} L${px} ${y + 28}" stroke="var(--gold)" stroke-width="2" fill="none"/>`;
+    g += `<text x="${px + 2}" y="${y + 62}" font-size="11" fill="#CBD5E1"><tspan font-weight="700" fill="var(--gold)">${esc(e.id)}</tspan> q ${num(e.queue_veh)}${e.meter_vph !== null ? " · m " + num(e.meter_vph) : ""}</text>`;
+    g += `<rect x="${px + 2}" y="${y + 70}" width="60" height="5" rx="2" fill="#1E2A4A"/><rect x="${px + 2}" y="${y + 70}" width="${60 * Math.min(q, 1)}" height="5" rx="2" fill="${q >= 1 ? "var(--red)" : "var(--gold)"}"/>`;
+  });
+  s.sensors.forEach((d) => {
+    const c = s.cells.find((c) => c.id === d.cell); if (!c) return;
+    const ci = s.cells.indexOf(c);
+    g += `<circle cx="${x0 + ci * cw + cw / 2}" cy="${y - 8}" r="4" fill="${d.status === "ok" ? "var(--gold)" : "var(--red)"}"><title>${esc(d.id)} · ${esc(d.status)}</title></circle>`;
+  });
+  $("corr").innerHTML = g;
+}
+function drawSpark(points) {
+  if (!points.length) { $("spark").innerHTML = ""; return; }
+  const W = 520, H = 150, p = 28, xs = points.map((q) => q.time_s), ys = points.map((q) => q.travel_time_min);
+  const xmin = Math.min(...xs), xmax = Math.max(...xs, xmin + 1), ymax = Math.max(...ys, 15);
+  const X = (t) => p + (t - xmin) / (xmax - xmin) * (W - 2 * p), Y = (v) => H - p - v / ymax * (H - 2 * p);
+  const d = points.map((q, i) => (i ? "L" : "M") + X(q.time_s).toFixed(1) + " " + Y(q.travel_time_min).toFixed(1)).join(" ");
+  let g = `<line x1="${p}" x2="${W - p}" y1="${H - p}" y2="${H - p}" stroke="#1E2A4A"/>`;
+  [0, ymax / 2, ymax].forEach((v) => g += `<text x="${p - 6}" y="${Y(v) + 4}" text-anchor="end" font-size="10" fill="#64748B">${num(v)}</text>`);
+  g += `<path d="${d}" fill="none" stroke="var(--gold)" stroke-width="2"/><text x="${W - p}" y="14" text-anchor="end" font-size="11" fill="#94A3B8">minutes</text>`;
+  $("spark").innerHTML = g;
+}
+function pill(kind) { return kind === "possible_incident" ? "bad" : (kind === "sensor" || kind === "check_closure") ? "warn" : (kind === "incident_cleared" || kind === "incident_explained") ? "ok" : "info"; }
+async function refresh() {
+  try {
+    const s = await api("/v1/state");
+    $("err").textContent = "";
+    $("c-clock").textContent = s.clock.slice(0, 5);
+    $("c-tt").textContent = num(s.travel_time_min, 1) + " min";
+    $("c-ff").textContent = "free flow " + num(s.free_flow_travel_time_min, 1) + " min";
+    $("c-q").textContent = num(s.entries.reduce((a, e) => a + e.queue_veh, 0));
+    $("c-al").textContent = s.active_incident_alarms;
+    const cl = Object.entries(s.confirmed_closures || {});
+    $("c-cl").textContent = cl.length ? "confirmed: " + cl.map(([c, n]) => `${c} (${n})`).join(", ") : "no confirmed closures";
+    $("c-m").textContent = s.metering_enabled ? "On" : "Off";
+    drawCorridor(s);
+    $("entries").innerHTML = s.entries.map((e) => `<tr><td>${esc(e.name)}</td><td>${num(e.km, 1)}</td><td class="n">${num(e.arrivals_vph)}</td><td class="n">${num(e.flow_vph)}</td><td class="n">${e.meter_vph === null ? "off" : num(e.meter_vph)}</td><td class="n">${num(e.queue_veh)}${e.queue_veh >= e.queue_limit_veh ? ' <span class="pill bad">limit</span>' : ""}</td><td class="n">${num(e.est_wait_min, 1)} min</td></tr>`).join("");
+    $("sensors").innerHTML = s.sensors.map((d) => `<tr><td>${esc(d.id)}</td><td>${esc(d.cell)}</td><td><span class="pill ${d.status === "ok" ? "ok" : d.status === "fault" ? "bad" : "info"}">${esc(d.status)}</span> <span class="muted">${esc(d.flags.join(", "))}</span></td><td class="n">${d.residual_vpkpl === null ? "–" : num(d.residual_vpkpl, 1)}</td></tr>`).join("");
+    $("alerts").innerHTML = s.alerts.length ? s.alerts.map((a) => `<div class="alert"><span class="t">${esc(a.time)}</span><span class="pill ${pill(a.kind)}">${esc(a.kind.replaceAll("_", " "))}</span> ${esc(a.message)}</div>`).join("") : '<span class="muted">No alerts.</span>';
+    const h = await api("/v1/history");
+    drawSpark(h.points);
+  } catch (e) { $("err").textContent = e.message; }
+}
+$("connect").onclick = async () => {
+  KEY = $("key").value.trim();
+  try {
+    const w = await api("/v1/whoami"); $("who").textContent = "role: " + w.role;
+    NET = await api("/v1/network"); $("c-net").textContent = NET.name;
+    clearInterval(TIMER); await refresh(); TIMER = setInterval(refresh, 2000);
+  } catch (e) { $("err").textContent = e.message; }
+};
+$("m-on").onclick = () => api("/v1/metering", {method: "POST", body: JSON.stringify({enabled: true})}).then(refresh).catch((e) => $("err").textContent = e.message);
+$("m-off").onclick = () => api("/v1/metering", {method: "POST", body: JSON.stringify({enabled: false})}).then(refresh).catch((e) => $("err").textContent = e.message);
+$("cc").onsubmit = (ev) => {
+  ev.preventDefault(); const f = new FormData(ev.target);
+  api("/v1/closures", {method: "POST", body: JSON.stringify({cell: f.get("cell"), lanes_closed: Number(f.get("lanes"))})}).then(refresh).catch((e) => $("err").textContent = e.message);
+};
+$("sz").onsubmit = async (ev) => {
+  ev.preventDefault(); const f = new FormData(ev.target);
+  try {
+    const r = await api("/v1/plaza/sizing", {method: "POST", body: JSON.stringify({arrival_vph: Number(f.get("a")), service_vphpl: Number(f.get("s")), target_wait_s: Number(f.get("w"))})});
+    $("szres").innerHTML = `<b>${esc(r.lanes)} lanes</b> · utilisation ${num(r.utilisation, 2)} · P(wait) ${num(r.p_wait, 2)} · mean wait ${num(r.mean_wait_s, 1)} s <span class="muted">(${esc(r.model)})</span>`;
+  } catch (e) { $("szres").textContent = e.message; }
+};
+$("wi").onsubmit = async (ev) => {
+  ev.preventDefault(); const f = new FormData(ev.target);
+  const body = {name: f.get("name"), horizon_min: Number(f.get("horizon_min")), demand_factor: Number(f.get("demand_factor")), closures: []};
+  if (f.get("reopen_after_min") !== "") body.reopen_after_min = Number(f.get("reopen_after_min"));
+  if (f.get("metering")) body.metering = f.get("metering") === "true";
+  if (f.get("c_cell")) body.closures.push({cell: f.get("c_cell"), lanes_closed: Number(f.get("c_lanes") || 1), duration_min: Number(f.get("c_dur") || 30)});
+  $("wires").innerHTML = '<span class="muted">running…</span>';
+  try {
+    const r = await api("/v1/what-if", {method: "POST", body: JSON.stringify(body)});
+    const b = r.baseline, s = r.scenario_result, d = r.delta;
+    const row = (label, k, dec, unit) => `<tr><td>${label}</td><td class="n">${num(b[k], dec)}</td><td class="n">${num(s[k], dec)}</td><td class="n"><b>${d[k] > 0 ? "+" : ""}${num(d[k], dec)}</b> ${unit}</td></tr>`;
+    $("wires").innerHTML = `<table><thead><tr><th>From ${esc(r.start_clock)}</th><th class="n">Baseline</th><th class="n">${esc(r.scenario.name)}</th><th class="n">Change</th></tr></thead><tbody>
+      ${row("Delay (veh-h)", "delay_vh", 0, "")}${row("Mean travel time", "mean_travel_time_min", 1, "min")}${row("Max travel time", "max_travel_time_min", 1, "min")}${row("Vehicles out", "exited", 0, "")}</tbody></table>
+      ${r.warnings.map((w) => `<div class="alert"><span class="pill warn">queue</span> ${esc(w)}</div>`).join("")}`;
+  } catch (e) { $("wires").textContent = e.message; }
+};
+</script>
+</body>
+</html>

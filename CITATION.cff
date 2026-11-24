@@ -1,0 +1,12 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "Intelligent Transportation Digital Twin"
+abstract: "A digital twin for an expressway corridor: a cell transmission model kept in step with detector data, incident alarms from forecast residuals, PI-ALINEA ramp metering, toll plaza queues and what-if scenarios. Synthetic demo network."
+authors:
+  - family-names: "Hassain"
+    given-names: "Rubbaite T."
+version: 1.0.0
+date-released: 2026-11-24
+license: MIT
+repository-code: "https://github.com/md-rubbaite/intelligent-transportation-digital-twin"
+keywords: [digital-twin, traffic-simulation, cell-transmission-model, intelligent-transportation-systems, ramp-metering, toll-plaza]

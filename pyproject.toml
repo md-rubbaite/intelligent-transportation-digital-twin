@@ -1,0 +1,44 @@
+[build-system]
+requires = ["setuptools>=84.2.1"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "itwin"
+version = "1.0.0"
+description = "Digital twin for an expressway corridor: cell transmission model kept in step with detector data, incident alarms, ramp metering, toll plaza queues and what-if scenarios."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Rubbaite T. Hassain" }]
+keywords = ["digital-twin", "traffic-simulation", "cell-transmission-model", "intelligent-transportation-systems", "ramp-metering", "toll-plaza"]
+dependencies = [
+    "fastapi>=0.165.0,<1",
+    "uvicorn>=0.54.0,<1",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=9.1.1", "ruff>=0.17.5", "httpx2>=2.16.2"]
+
+[project.scripts]
+itwin = "itwin.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+itwin = ["default_network.toml", "dashboard/index.html"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+filterwarnings = ["error"]
+
+[tool.ruff]
+line-length = 140
+target-version = "py311"
+extend-exclude = ["*.md"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM"]
+# B008: FastAPI dependencies are declared as default arguments by design
+ignore = ["B008"]
