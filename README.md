@@ -148,6 +148,8 @@ docs/             architecture notes, ADRs, threat model, deployment guide
 
 Rubbaite T. Hassain, System/Solutions Architect on an urban elevated expressway programme (since 2026). This repository is independent work on synthetic data and contains no project data or code.
 
+Architecture, requirements and review by Rubbaite T. Hassain; implementation AI-assisted.
+
 ## License
 
 MIT
