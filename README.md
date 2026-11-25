@@ -3,7 +3,7 @@
 # Intelligent Transportation Digital Twin
 
 [![ci](https://github.com/md-rubbaite/intelligent-transportation-digital-twin/actions/workflows/ci.yml/badge.svg)](https://github.com/md-rubbaite/intelligent-transportation-digital-twin/actions/workflows/ci.yml)
-![python](https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13-1f2b46)
+![python](https://img.shields.io/badge/python-3.11%20%E2%80%93%203.15-1f2b46)
 ![license](https://img.shields.io/badge/license-MIT-1f2b46)
 
 A digital twin for an expressway corridor with toll plazas. A traffic model runs alongside the
