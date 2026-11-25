@@ -1,11 +1,11 @@
 # syntax=docker/dockerfile:1
-FROM python:3.13-slim AS build
+FROM python:3.15-slim AS build
 WORKDIR /src
 COPY pyproject.toml README.md ./
 COPY src ./src
 RUN pip wheel --no-cache-dir --wheel-dir /wheels .
 
-FROM python:3.13-slim
+FROM python:3.15-slim
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 ITWIN_HOST=0.0.0.0 ITWIN_PORT=8080
 RUN useradd --system --uid 10001 --no-create-home itwin
 COPY --from=build /wheels /wheels
